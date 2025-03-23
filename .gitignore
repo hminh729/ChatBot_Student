@@ -1,0 +1,5 @@
+node_modules
+.idea/
+src/model/scripts/db/
+src/model/scripts/__pycache__/
+

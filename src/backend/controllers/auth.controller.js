@@ -8,12 +8,15 @@ import {
 import {sendEmail} from "../helpers/auth.helper.js"
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+const collectionAvatar = ["Fun Emoji","Adventurer","Dylan"];
+const eacheAvatarMale = ["Kingston","Jocelyn", "Ryker","Liam","Sadie","Destiny","Mason","Jack"];                            
+const eacheAvatarFemale = ["Wyatt","Alexander","Jude","Christopher","Jessica","Vivian","George","Leah","Christian","Eden","Riley","Brooklynn"];
 
 dotenv.config();
 
 export const PostSignup = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, fullname, sex } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({ message: "Please fill all the fields" });
     }
@@ -38,10 +41,21 @@ export const PostSignup = async (req, res) => {
     }
     const salt = bcryptjs.genSaltSync(10);
     const hashPassword = bcryptjs.hashSync(password, salt);
+    let avatar = "";
+    if(sex == "male"){
+     avatar = `https://api.dicebear.com/9.x/${collectionAvatar[Math.floor(Math.random() * collectionAvatar.length)]}/svg?seed=${eacheAvatarMale[Math.floor(Math.random() * eacheAvatarMale.length)]}`;
+    }else{
+     avatar = `https://api.dicebear.com/9.x/${collectionAvatar[Math.floor(Math.random() * collectionAvatar.length)]}/svg?seed=${eacheAvatarFemale[Math.floor(Math.random() * eacheAvatarFemale.length)]}`;
+    }
     const newUser = new User({
-      username,
-      email,
-      password: hashPassword,
+      information: {
+        username,
+        email,
+        password: hashPassword,
+        avatar,
+        fullname,
+        sex,
+      },
     });
 
     const accessToken = generateAccessToken(newUser._id);
