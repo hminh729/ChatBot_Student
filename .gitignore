@@ -5,3 +5,4 @@ src/model/scripts/__pycache__/
 src/model/chroma_db/
 src/model/.venv/
 src/model/chroma_db/
+src/model/.env

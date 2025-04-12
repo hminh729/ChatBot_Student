@@ -5,12 +5,34 @@ import {
   generateRefreshToken,
   generateResetToken,
 } from "../utils/generateToken.js";
-import {sendEmail} from "../helpers/auth.helper.js"
+import { sendEmail } from "../helpers/auth.helper.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-const collectionAvatar = ["Fun Emoji","Adventurer","Dylan"];
-const eacheAvatarMale = ["Kingston","Jocelyn", "Ryker","Liam","Sadie","Destiny","Mason","Jack"];                            
-const eacheAvatarFemale = ["Wyatt","Alexander","Jude","Christopher","Jessica","Vivian","George","Leah","Christian","Eden","Riley","Brooklynn"];
+const collectionAvatar = ["Fun Emoji", "Adventurer", "Dylan"];
+const eacheAvatarMale = [
+  "Kingston",
+  "Jocelyn",
+  "Ryker",
+  "Liam",
+  "Sadie",
+  "Destiny",
+  "Mason",
+  "Jack",
+];
+const eacheAvatarFemale = [
+  "Wyatt",
+  "Alexander",
+  "Jude",
+  "Christopher",
+  "Jessica",
+  "Vivian",
+  "George",
+  "Leah",
+  "Christian",
+  "Eden",
+  "Riley",
+  "Brooklynn",
+];
 
 dotenv.config();
 
@@ -42,10 +64,18 @@ export const PostSignup = async (req, res) => {
     const salt = bcryptjs.genSaltSync(10);
     const hashPassword = bcryptjs.hashSync(password, salt);
     let avatar = "";
-    if(sex == "male"){
-     avatar = `https://api.dicebear.com/9.x/${collectionAvatar[Math.floor(Math.random() * collectionAvatar.length)]}/svg?seed=${eacheAvatarMale[Math.floor(Math.random() * eacheAvatarMale.length)]}`;
-    }else{
-     avatar = `https://api.dicebear.com/9.x/${collectionAvatar[Math.floor(Math.random() * collectionAvatar.length)]}/svg?seed=${eacheAvatarFemale[Math.floor(Math.random() * eacheAvatarFemale.length)]}`;
+    if (sex == "male") {
+      avatar = `https://api.dicebear.com/9.x/${
+        collectionAvatar[Math.floor(Math.random() * collectionAvatar.length)]
+      }/svg?seed=${
+        eacheAvatarMale[Math.floor(Math.random() * eacheAvatarMale.length)]
+      }`;
+    } else {
+      avatar = `https://api.dicebear.com/9.x/${
+        collectionAvatar[Math.floor(Math.random() * collectionAvatar.length)]
+      }/svg?seed=${
+        eacheAvatarFemale[Math.floor(Math.random() * eacheAvatarFemale.length)]
+      }`;
     }
     const newUser = new User({
       information: {
@@ -111,50 +141,49 @@ export const PostLogout = (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
-    try {
-      const resetToken  = req.params.token;
-      const { password } = req.body; 
-     
-      const decoded = jwt.verify(resetToken, process.env.JWT_KEY);
-    
-      const thisUser = await User.findOne({_id: decoded.userId});
-    
-    if(!thisUser){
-      return res.status(404).json({message:"User not found"})
+  try {
+    const resetToken = req.params.token;
+    const { password } = req.body;
+
+    const decoded = jwt.verify(resetToken, process.env.JWT_KEY);
+
+    const thisUser = await User.findOne({ _id: decoded.userId });
+
+    if (!thisUser) {
+      return res.status(404).json({ message: "User not found" });
     }
     const salt = bcryptjs.genSaltSync(10);
     const newHashPassword = bcryptjs.hashSync(password, salt);
     thisUser.password = newHashPassword;
-    
+
     await thisUser.save();
-    res.status(200).json({message:"Reset Password Successfully"})
-    } catch (error) {
-      return res.status(500).json({message:"Error in reset password"})
-    }
+    res.status(200).json({ message: "Reset Password Successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Error in reset password" });
+  }
 };
 
-export const forgotPassword = async (req, res) =>{
+export const forgotPassword = async (req, res) => {
   try {
-    const {email} = req.body;
- 
-  const thisUser = await User.findOne({email:email});
-  if (!thisUser) {
-    return res.status(404).json({ message: "Email does not exist" });
-  }
-  const resetToken = generateResetToken(thisUser._id);
-  const resetLink = `http://localhost:3000/api/v1/auth/resetPassword/${resetToken}`
-  const subject = "Reset Password";
-  const html =`<p>Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu:</p>
-                   <a href="${resetLink}">Đặt lại mật khẩu</a>
-                   <p>Link này sẽ hết hạn sau 5 phút.</p>`
-  await sendEmail({
-    email:email,
-    subject: subject,
-    html:html
-  });
-  res.status(200).json({message:"successfully"})
-  } catch (error) {
-    return res.status(500).json({message:"Server error"})
-  }
+    const { email } = req.body;
 
-}
+    const thisUser = await User.findOne({ email: email });
+    if (!thisUser) {
+      return res.status(404).json({ message: "Email does not exist" });
+    }
+    const resetToken = generateResetToken(thisUser._id);
+    const resetLink = `http://localhost:3000/api/v1/auth/resetPassword/${resetToken}`;
+    const subject = "Reset Password";
+    const html = `<p>Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào link bên dưới để đặt lại mật khẩu:</p>
+                   <a href="${resetLink}">Đặt lại mật khẩu</a>
+                   <p>Link này sẽ hết hạn sau 5 phút.</p>`;
+    await sendEmail({
+      email: email,
+      subject: subject,
+      html: html,
+    });
+    res.status(200).json({ message: "successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+};
