@@ -1,78 +1,107 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router";
+import { MdDelete } from "react-icons/md";
 
-const Sidebar = ({ setModelChoice, setCollectionName }) => {
-  const [model, setModel] = useState("OpenAI GPT-4");
+const Sidebar = ({ stu_id, onSetSubject_name }) => {
   const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const [subject_name, setSuject_name] = useState("");
-
-  const handleModelChange = (e) => {
-    const model = e.target.value;
-    setModel(model);
-    setModelChoice(model);
+  const [subject_name, setSubject_name] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const navigate = useNavigate();
+  const getSubjects = async () => {
+    try {
+      const res = await axios.get(
+        `http://127.0.0.1:8000/get_subjects/${stu_id}`
+      );
+      setSubjects(res.data.subjects);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách môn học:", error);
+    }
   };
+  useEffect(() => {
+    getSubjects();
+  }, [stu_id]);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
   const handleUpload = async () => {
-    if (!file) {
-      setUploadStatus("⚠️ Chưa chọn file");
+    if (!file || !subject_name) {
+      setUploadStatus("⚠️ Vui lòng chọn file và nhập tên môn học.");
       return;
     }
 
     try {
-      setIsUploading(true); // Start loading
-      setUploadStatus(""); // Reset status
-      const arr = subject_name.split(" ");
-      const subject_id = arr.map((arr) => arr[0]).join("");
-      const stu_id = "B22DCCN542";
+      setIsUploading(true);
+      setUploadStatus("");
+
+      const arr = subject_name.trim().split(" ");
+      const subject_id = arr.map((word) => word[0]).join("");
+
+      // Gửi môn học mới
       await axios.post(`http://127.0.0.1:8000/add_subject/${stu_id}`, {
         subject_id,
         subject_name,
       });
+
+      // Upload file
       const formData = new FormData();
       formData.append("file", file);
       formData.append("subject_name", subject_name);
-      const res = await axios.post(
-        "http://127.0.0.1:8000/post_file",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+      formData.append("stu_id", stu_id);
+      await axios.post("http://127.0.0.1:8000/post_file", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       setUploadStatus("✅ Upload thành công!");
       setFile(null);
+      setSubject_name("");
+
+      // Cập nhật lại danh sách môn học
+      getSubjects();
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi khi upload:", error);
       setUploadStatus("❌ Upload thất bại.");
     } finally {
-      setIsUploading(false); // End loading
+      setIsUploading(false);
     }
+  };
+  const handleLogout = () => {
+    localStorage.removeItem("stu_id");
+    navigate("/");
+  };
+  const handleDelete = async (subject_name) => {
+    try {
+      const res = await axios.post(
+        `http://127.0.0.1:8000/delete_subject/${stu_id}/${subject_name}`
+      );
+      if (res.status === 200) {
+        alert("Xóa môn học thành công");
+        getSubjects();
+      } else {
+        setUploadStatus("❌ Xóa môn học thất bại.");
+      }
+    } catch (error) {}
   };
 
   return (
-    <div className="w-64 p-4 bg-gray-200">
-      <h3 className="mt-4">Embeddings Model</h3>
-      <select
-        className="w-full p-2 mt-2 border border-gray-300 rounded"
-        onChange={handleModelChange}
-      >
-        <option value="Ollama (Local)">Ollama (Local)</option>
-        <option value="OpenAI GPT-4">OpenAI GPT-4</option>
-        <option value="OpenAI Grok">OpenAI Grok</option>
-      </select>
+    <div className="w-64 p-4 bg-gray-200 min-h-screen">
+      <h3 className="text-lg font-semibold mb-2">Upload tài liệu</h3>
+      <button onClick={handleLogout} className="bg-gray-300 cursor-pointer">
+        Logout
+      </button>
 
       <input
         type="text"
-        placeholder="Subject Name"
+        placeholder="Tên môn(viết liền không dấu)"
         value={subject_name}
-        onChange={(e) => setSuject_name(e.target.value)}
+        onChange={(e) => setSubject_name(e.target.value)}
         className="w-full p-2 mt-2 border border-gray-300 rounded"
       />
+
       <input
         type="file"
         accept="application/pdf"
@@ -83,12 +112,37 @@ const Sidebar = ({ setModelChoice, setCollectionName }) => {
       <button
         className="mt-2 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:opacity-50"
         onClick={handleUpload}
-        disabled={isUploading} // Disable while uploading
+        disabled={isUploading}
       >
         {isUploading ? "⏳ Đang upload..." : "Upload"}
       </button>
 
       {uploadStatus && <p className="mt-2 text-sm">{uploadStatus}</p>}
+
+      <div className="mt-6">
+        <h4 className="text-md font-semibold mb-2">Danh sách môn học:</h4>
+        {subjects.length > 0 ? (
+          subjects.map((subject, index) => (
+            <div className="flex items-center justify-between ">
+              <div
+                key={index}
+                className="p-2 bg-blue-400 cursor-pointer rounded mb-2 shadow-sm hover:bg-blue-500"
+                onClick={() => onSetSubject_name(subject)}
+              >
+                <p>{subject}</p>
+              </div>
+              <div>
+                <MdDelete
+                  className="size-7 cursor-pointer"
+                  onClick={() => handleDelete(subject)}
+                />
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-gray-600">Chưa có môn học nào.</p>
+        )}
+      </div>
     </div>
   );
 };

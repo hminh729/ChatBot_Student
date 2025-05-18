@@ -1,18 +1,19 @@
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import ChatApp from "./pages/ChatApp.jsx";
-import Signup from "./pages/Signup.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import SignUp from "./pages/SignUp.jsx";
 
-const App = () => {
+function App() {
   return (
-    <div>
-      <Routes>
-        <Route path="/" element={<Signup />} />
-        <Route path="/chatapp" element={<ChatApp />} />
-      </Routes>
-    </div>
+    <Routes>
+      <Route path="/" element={<HomePage />}>
+        <Route index element={<Login />} />
+      </Route>
+      <Route path="/chatapp" element={<ChatApp />} />
+      <Route path="/Signup" element={<SignUp />} />
+    </Routes>
   );
-};
+}
 
 export default App;

@@ -1,6 +1,6 @@
 import React from "react";
 
-const ChatHeader = ({ modelChoice }) => {
+const ChatHeader = () => {
   return (
     <header className="p-4 bg-blue-500 text-white">
       <h1 className="text-2xl">💬 AI Assistant</h1>
