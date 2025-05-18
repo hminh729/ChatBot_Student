@@ -120,6 +120,3 @@ Nếu không tìm thấy, hãy trả lời: "Xin lỗi, tôi không tìm thấy 
     # Tạo agent
     agent = create_tool_calling_agent(llm=llm, tools=tools, prompt=prompt)
     return AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-# retriever = get_retriever()
-# agent_executor = get_llm_and_agent(retriever)

@@ -5,7 +5,6 @@ from typing import List
 from fastapi import Body
 from fastapi import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from seed_data import seed_data_milvus_ollama
 from starlette.concurrency import run_in_threadpool
 import os
 from fastapi import Form
@@ -13,6 +12,7 @@ import shutil
 from langchain_core.messages import HumanMessage, AIMessage
 import asyncio
 from agent import get_llm_and_agent, get_retriever
+from seed_data import seed_data_milvus_ollama, delete_collection 
 
         
     
@@ -43,6 +43,9 @@ collection = db["Users"]
 async def signup(user: User):
     
     thisUser = jsonable_encoder(user)
+    existing_user = await collection.find_one({"stu_id":thisUser["stu_id"]})
+    if existing_user:
+        return {"status": "fail", "message": "User already exists"}
     result = await collection.insert_one(thisUser)
     return {"status": "success", "user_id": str(result.inserted_id)}
 
@@ -93,7 +96,18 @@ async def add_subject(
         "subject_name": subject_name,
         "messages": []
     }
-
+    thisUser = await collection.find_one({"stu_id":stu_id})
+    if not thisUser:
+        return{"status":"fail",
+                "message":"User not Found"}
+    else:
+        for subject in thisUser.get("subject",[]):
+            if subject["subject_name"] == subject_name:
+                return {
+                    "status":"success",
+                    "message":"Subject already exists"
+                }
+        
     result = await collection.update_one(
         {"stu_id": stu_id},
         {"$push": {"subject": new_subject}}
@@ -104,7 +118,7 @@ async def add_subject(
     
     return {"status": "success", "message": "Subject added successfully"}
 
-async def post_file(file: UploadFile = File(...), subject_name:str  = Form(...)):
+async def post_file(file: UploadFile = File(...), subject_name:str  = Form(...), stu_id : str = Form(...)):
     # Kiểm tra định dạng
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Chỉ hỗ trợ file PDF.")
@@ -112,6 +126,7 @@ async def post_file(file: UploadFile = File(...), subject_name:str  = Form(...))
     save_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data"))
     os.makedirs(save_dir, exist_ok=True)  # Tạo thư mục nếu chưa có
     file_path = os.path.join(save_dir, file.filename)
+    collection = subject_name + stu_id
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -120,7 +135,7 @@ async def post_file(file: UploadFile = File(...), subject_name:str  = Form(...))
             seed_data_milvus_ollama,
             file_dir,
             "bge-m3:567m",
-            subject_name,     
+            collection,
             "http://localhost:19530"
         )
         return {"message": "Upload thành công", "filename": file.filename}
@@ -128,8 +143,26 @@ async def post_file(file: UploadFile = File(...), subject_name:str  = Form(...))
         raise HTTPException(status_code=500, detail=f"Lỗi khi lưu file: {str(e)}")
 
 
-async def login():
-    return "hi"
+async def login(stu_id:str = Path(...), password:str = Path(...)):
+    thisUser = await collection.find_one({"stu_id": stu_id})
+
+    if not thisUser:
+        return {
+            "status": "fail",
+            "message": "User not found"
+        }
+    else:
+        if thisUser["password"] != password:
+            return {
+                "status":"fail",
+                "message": "Password is incorrect"
+            }
+        else:
+            
+            return {
+                "status":"success",
+                "message": "Login successfully",
+            }
 
 async def get_response(
     stu_id: str = Path(...),
@@ -168,3 +201,38 @@ async def get_response(
         "message": response["output"]
     }
 
+async def get_subjects(stu_id :str = Path(...)):
+    
+    thisUser = await collection.find_one({"stu_id": stu_id})
+    subjects = []
+    if not thisUser:
+        return {
+            "status": "fail",
+            "message": "User not found"
+        }
+    for subject in thisUser.get("subject", []):
+        subjects.append(subject["subject_name"])
+    return {
+        "status": "success",
+        "subjects": subjects
+    }
+
+async def delete_subject(stu_id : str = Path(...), subject_name:str = Path(...)):
+    try:
+        await collection.update_one(
+            {"stu_id": stu_id},
+            {"$pull": {"subject": {"subject_name": subject_name}}}
+        )
+
+        collection_name = subject_name + stu_id
+        delete_collection(collection_name)
+        return {
+            "status":"success",
+            "message":"Delete subject successfully"
+        }
+        
+    except Exception as e:
+        return{
+            "status":"fail",
+            "message":"Server error"
+        }

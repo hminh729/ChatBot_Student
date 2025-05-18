@@ -5,15 +5,22 @@ from langchain_milvus import Milvus
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from mistralai import Mistral
-from pymilvus import connections
+from pymilvus import connections, utility
 from uuid import uuid4
 from langchain_cohere import CohereEmbeddings
 import os
 from dotenv import load_dotenv
 
+
 # Load biến môi trường
 load_dotenv()
-
+def connect_milvus():
+    connections.connect(
+            alias="default",
+            host="localhost",  # Thay bằng IP server nếu cần
+            port="19530"
+        )
+    print("Kết nối Milvus thành công!")
 # Hàm này để load file pdf từ thư mục data
 def load_file_pdf(file_path:str):
     """
@@ -47,16 +54,11 @@ def seed_data_milvus_ollama(file_path:str, use_model:str,collection_name :str,ur
     ]
     uuids = [str(uuid4()) for _ in range(len(documents))]
     # Kết nối với Milvus
-    connections.connect(host="localhost", port="19530")
+    connect_milvus()
     #khởi tạo OllamaEmbeddings
     embeddings = OllamaEmbeddings(model=use_model)
     try:
-        connections.connect(
-            alias="default",
-            host="localhost",  # Thay bằng IP server nếu cần
-            port="19530"
-        )
-        print("Kết nối Milvus thành công!")
+        
         vectorstore = Milvus(
             embedding_function=embeddings,
             connection_args={"uri":url},
@@ -68,7 +70,10 @@ def seed_data_milvus_ollama(file_path:str, use_model:str,collection_name :str,ur
     except Exception as e:
         print(f"Kết nối Milvus thất bại: {e}")
 
-
+def delete_collection(collection_name:str):
+    connect_milvus()
+    utility.drop_collection(collection_name)
+    print(f"Đã xóa collection {collection_name} thành công!")
         
 # seed_data_milvus_ollama(
 #     file_path="../data/1.pdf",
