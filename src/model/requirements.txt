@@ -1,27 +1,27 @@
+fastapi==0.115.12
 langchain==0.3.22
+langchain-cohere==0.4.3
 langchain-community==0.3.20
 langchain-core==0.3.49
-langchain-ollama==0.3.0
-langchain-cohere==0.4.3
-motor==3.7.0
-fastapi==0.115.12
-uvicorn==0.34.0
-pydantic==2.11.1
-nest-asyncio==1.6.0
-python-dotenv==1.1.0
-pymilvus==2.5.6
 langchain-milvus==0.1.8
+langchain-mistralai==0.2.10
+langchain-ollama==0.3.0
+langchain-text-splitters==0.3.7
+milvus==2.2.16
+motor==3.7.0
+nest-asyncio==1.6.0
+numpy==1.26.4
+pillow==11.2.1
+pydantic==2.11.1
+pymilvus==2.5.6
+pypdf==5.4.0
+python-dotenv==1.1.0
+rank-bm25==0.2.2
+scipy==1.15.2
+threadpoolctl==3.6.0
+uuid==1.30
+uvicorn==0.34.0
+zstandard==0.23.0
+python-multipart==0.0.6
+# rapidocr-onnxruntime==0.1.0
 
-# langchain
-# langchain-community
-# langchain-core
-# langchain-ollama
-# langchain-cohere
-# motor
-# fastapi
-# uvicorn
-# pydantic
-# nest-asyncio
-# python-dotenv
-# pymilvus
-# langchain-milvus

@@ -1,5 +1,4 @@
 from langchain.tools.retriever import create_retriever_tool
-from langchain_ollama import ChatOllama
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.vectorstores import Milvus # type: ignore
@@ -13,7 +12,7 @@ from langchain_core.tools import tool
 import asyncio
 import getpass
 from langchain_core.messages import HumanMessage, AIMessage
-from controller import signup, get_message, update_message, add_subject
+from scripts.controller import get_message, update_message
 import nest_asyncio
 
 
@@ -102,17 +101,6 @@ def summarize_section_tool(topic: str) -> str:
 
 
 def get_llm_and_agent(retriever):
-    # Khởi tạo ChatOllama
-    # llm = ChatOllama(
-    #     model="mistral:latest",
-    #     temperature=0,
-    #     streaming=True
-    # )
-
-    #Khởi tạo chatbot Mistral
-    # if not os.environ.get("MISTRAL_API_KEY"):
-    #     os.environ["MISTRAL_API_KEY"] = getpass.getpass("Enter API key for Mistral AI: ")
-    # llm = init_chat_model("mistral-large-latest", model_provider="mistralai")
 
     # Khởi tạo chatbot Cohere
     if not os.environ.get("COHERE_API_KEY"):
@@ -121,12 +109,6 @@ def get_llm_and_agent(retriever):
     llm = init_chat_model("command-r-plus", model_provider="cohere", model_kwargs={"temperature": 0.5})
     tools = [find_documents_tool, summarize_section_tool]
 
-    # if not os.environ.get("NVIDIA_API_KEY"):
-    #     os.environ["NVIDIA_API_KEY"] = getpass.getpass("Enter API key for NVIDIA: ")
-
-    # llm = init_chat_model("meta/llama3-70b-instruct", model_provider="nvidia",model_kwargs={"temperature": 0})
-    # tools = [tool]
-    # Thiết lập prompt template
     system = """Bạn là trợ lý thông minh. 
 Chỉ trả lời câu hỏi nếu bạn tìm thấy thông tin từ giáo trình được cung cấp.
 Nếu không tìm thấy, hãy trả lời: "Xin lỗi, tôi không tìm thấy thông tin trong giáo trình."""

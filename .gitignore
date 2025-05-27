@@ -6,5 +6,4 @@ src/model/chroma_db/
 src/model/.venv/
 src/model/chroma_db/
 src/model/.env
-src/docker
-src/backend
+src/production/volumes

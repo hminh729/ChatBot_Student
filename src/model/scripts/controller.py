@@ -4,18 +4,15 @@ from fastapi.encoders import jsonable_encoder
 from typing import List
 from fastapi import Body
 from fastapi import Path
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import UploadFile, File, HTTPException
 from starlette.concurrency import run_in_threadpool
 import os
 from fastapi import Form
 import shutil
 from langchain_core.messages import HumanMessage, AIMessage
-import asyncio
-from agent import get_llm_and_agent, get_retriever
-from seed_data import seed_data_milvus_ollama, delete_collection 
+from scripts.agent import get_llm_and_agent, get_retriever
+from scripts.seed_data import seed_data_milvus_ollama, delete_collection 
 
-        
-    
 
 class Message(BaseModel):
     role: str 
@@ -118,30 +115,36 @@ async def add_subject(
     
     return {"status": "success", "message": "Subject added successfully"}
 
-async def post_file(file: UploadFile = File(...), subject_name:str  = Form(...), stu_id : str = Form(...)):
-    # Kiểm tra định dạng
+async def post_file(file: UploadFile = File(...), subject_name: str = Form(...), stu_id: str = Form(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Chỉ hỗ trợ file PDF.")
-    # Đường dẫn lưu file
+
     save_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data"))
-    os.makedirs(save_dir, exist_ok=True)  # Tạo thư mục nếu chưa có
+    os.makedirs(save_dir, exist_ok=True)
     file_path = os.path.join(save_dir, file.filename)
+
     collection = subject_name + stu_id
+
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        file_dir = "../data/" + file.filename
+
+        print(f"File saved to {file_path}") 
+
         await run_in_threadpool(
             seed_data_milvus_ollama,
-            file_dir,
+            file_path, 
             "bge-m3:567m",
             collection,
-            "http://localhost:19530"
+            "http://milvus-standalone:19530"
         )
-        return {"message": "Upload thành công", "filename": file.filename}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi lưu file: {str(e)}")
 
+        return {"message": "Upload thành công", "filename": file.filename}
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lưu file: {str(e)}")
 
 async def login(stu_id:str = Path(...), password:str = Path(...)):
     thisUser = await collection.find_one({"stu_id": stu_id})
@@ -170,7 +173,7 @@ async def get_response(
     input: str = Form(...)
 ):
    
-    retriever = get_retriever(subject_name)
+    retriever = get_retriever(subject_name+stu_id)
     agent_executor = get_llm_and_agent(retriever)
 
     result = await get_message(stu_id, subject_name)

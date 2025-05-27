@@ -12,9 +12,7 @@ const Login = () => {
         alert("Vui lòng nhập đầy đủ thông tin.");
         return;
       }
-      const res = await axios.post(
-        `http://localhost:8000/login/${stu_id}/${password}`
-      );
+      const res = await axios.post(`api/login/${stu_id}/${password}`);
       if (res.data.status === "success") {
         localStorage.setItem("stu_id", stu_id);
         nagivate("/chatapp");

@@ -16,7 +16,7 @@ const SignUp = () => {
         alert("Vui lòng nhập đầy đủ thông tin.");
         return;
       }
-      const res = await axios.post("http://localhost:8000/signup", {
+      const res = await axios.post(`/api/signup`, {
         fullname: fullname,
         stu_id: stu_id,
         password: password,

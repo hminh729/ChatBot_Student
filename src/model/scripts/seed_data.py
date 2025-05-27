@@ -1,32 +1,34 @@
 import getpass
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_milvus import Milvus
+# from langchain_milvus import Milvus
+from langchain_community.vectorstores import Milvus
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
-from mistralai import Mistral
 from pymilvus import connections, utility
 from uuid import uuid4
-from langchain_cohere import CohereEmbeddings
-import os
 from dotenv import load_dotenv
 
 
 # Load biến môi trường
 load_dotenv()
 def connect_milvus():
-    connections.connect(
+    try:
+        connections.connect(
             alias="default",
-            host="localhost",  # Thay bằng IP server nếu cần
-            port="19530"
+            host="milvus-standalone",
+            port="19530",
+            secure=False,
         )
-    print("Kết nối Milvus thành công!")
-# Hàm này để load file pdf từ thư mục data
+        print("Kết nối Milvus thành công!")
+    except Exception as e:
+        print(f"Kết nối Milvus thất bại: {e}")
+        raise
 def load_file_pdf(file_path:str):
     """
     Hàm này dùng để load file pdf từ đường dẫn file_path
     """
-    loader = PyPDFLoader(file_path, extract_images=True)
+    loader = PyPDFLoader(file_path, extract_images=False)
     documents = loader.load()
     return documents
 
@@ -56,14 +58,16 @@ def seed_data_milvus_ollama(file_path:str, use_model:str,collection_name :str,ur
     # Kết nối với Milvus
     connect_milvus()
     #khởi tạo OllamaEmbeddings
-    embeddings = OllamaEmbeddings(model=use_model)
+    embeddings = OllamaEmbeddings(
+        model=use_model,
+        base_url="http://ollama:11434" 
+    )
     try:
-        
         vectorstore = Milvus(
             embedding_function=embeddings,
-            connection_args={"uri":url},
             collection_name=collection_name,
-            drop_old=False  # Xóa data đã tồn tại trong collection
+            drop_old=False,
+            connection_args={"host": "milvus-standalone", "port": "19530"}  # Chỉ định rõ host và port
         )
         vectorstore.add_documents(documents=documents, ids = uuids)  # Thêm documents vào Milvus
         print("Đã lưu embeddings vào MilvusDB!")
@@ -74,91 +78,3 @@ def delete_collection(collection_name:str):
     connect_milvus()
     utility.drop_collection(collection_name)
     print(f"Đã xóa collection {collection_name} thành công!")
-        
-# seed_data_milvus_ollama(
-#     file_path="../data/1.pdf",
-#     use_model="bge-m3:567m",   # Thay model tùy bạn chọn
-#     collection_name="TestDB",
-#     url="http://localhost:19530"
-# )
-
-# Chọn model để tạo embeddings
-#  "bge-m3:567m"  # Chọn "mistral" hoặc "bge-m3:567m"
-
-
-
-
-
-
-
-# # Tạo embeddings từ model đã chọn
-# def mistral_embeddings(chunks):
-#     api_key = os.getenv("MISTRAL_API_KEY")
-#     model = "mistral-embed"
-#     client = Mistral(api_key=api_key)
-#     inputs = [chunk.page_content for chunk in chunks]
-#     embeddings_batch_response = client.embeddings.create(model=model, inputs=inputs)
-#     embeddings = [data.embedding for data in embeddings_batch_response.data]
-#     return embeddings
-# if use_model == "mistral":
-#     print("")
-# elif use_model == "bge-m3:567m":
-    
-# elif use_model == "cohere":
-#     if not os.environ.get("COHERE_API_KEY"):
-#         os.environ["COHERE_API_KEY"] = getpass.getpass("Enter API key for Cohere: ")
-#     embeddings = CohereEmbeddings(model="embed-english-v3.0")
-# else:
-#     raise ValueError("Model không hợp lệ. Chọn 'mistral' hoặc 'bge-m3'")
-
-
-
-# # Tạo danh sách UUID cho từng document
-
-
-
-# if use_model == "bge-m3:567m":
-    
-
-# elif use_model == "mistral":
-
-#     try:
-#         connections.connect(
-#             host="localhost",  # Thay bằng IP server nếu cần
-#             port="19530"
-#         )
-#         print("Kết nối Milvus thành công!")
-#         vectorstore = Milvus(
-#             embedding_function=mistral_embeddings(chunks),
-#             connection_args={"uri":"http://localhost:19530"},
-#             collection_name="TestDB",
-#             drop_old=True  # Xóa data đã tồn tại trong collection
-#         )
-#         inputs = [doc.page_content for doc in documents]
-
-#         # docs_embeddings = embeddings.encode_documents(inputs)
-#         # print(type(docs_embeddings[0]))  # Phải là <class 'list'> hoặc <class 'np.ndarray'>
-#         # print(len(docs_embeddings), len(docs_embeddings[0])) 
-#         vectorstore.add_documents(documents=documents,ids=uuids) # Thêm documents vào Milvus
-#         print("Đã lưu embeddings vào MilvusDB!")
-#     except Exception as e:
-#         print(f"Erorr is: {e}")
-
-# elif use_model == "cohere":
-    # try:
-    #     connections.connect(
-    #         alias="default",
-    #         host="localhost",  # Thay bằng IP server nếu cần
-    #         port="19530"
-    #     )
-    #     print("Kết nối Milvus thành công!")
-    #     vectorstore = Milvus(
-    #         embedding_function=embeddings,
-    #         connection_args={"uri":"http://localhost:19530"},
-    #         collection_name="TestDB",
-    #         drop_old=True  # Xóa data đã tồn tại trong collection
-    #     )
-    #     vectorstore.add_documents(documents=documents, ids = uuids)  # Thêm documents vào Milvus
-    #     print("Đã lưu embeddings vào MilvusDB!")
-    # except Exception as e:
-    #     print(f"Kết nối Milvus thất bại: {e}")

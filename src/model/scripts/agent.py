@@ -10,18 +10,21 @@ import os
 from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 import getpass
-import nest_asyncio
 
 
-nest_asyncio.apply()
+
 def get_retriever(collection_name: str) -> EnsembleRetriever:
     try:
         # Embedding + Milvus
-        embedding_model = OllamaEmbeddings(model="bge-m3:567m")
+        embedding_model = OllamaEmbeddings(
+            model="bge-m3:567m",
+            base_url="http://ollama:11434"
+        )
+
         vectorstore = Milvus(
             embedding_function=embedding_model,
-            connection_args={"host": "localhost", "port": "19530"},
             collection_name=collection_name,
+            connection_args={"host": "milvus-standalone", "port": "19530"}  # Chỉ định rõ host và port
         )
 
         # Milvus retriever
@@ -43,7 +46,7 @@ def get_retriever(collection_name: str) -> EnsembleRetriever:
         # Ensemble retriever
         ensemble_retriever = EnsembleRetriever(
             retrievers=[milvus_retriever, bm25_retriever],
-            weights=[0.6, 0.4]
+            weights=[0.7, 0.3]
         )
         return ensemble_retriever
 
@@ -60,36 +63,36 @@ def get_retriever(collection_name: str) -> EnsembleRetriever:
 
 
 
-@tool
-def summarize_section_tool(topic: str) -> str:
-    """
-    Tổng hợp nội dung liên quan đến một chủ đề trong giáo trình.
-    Nhập vào tên chương hoặc từ khóa (ví dụ: 'Chương 1', 'Tư tưởng Hồ Chí Minh').
-    Trả về bản tóm tắt nội dung từ giáo trình.
-    """
-    try:
-        # Lấy retriever
-        retriever = get_retriever()
+# @tool
+# def summarize_section_tool(topic: str) -> str:
+#     """
+#     Tổng hợp nội dung liên quan đến một chủ đề trong giáo trình.
+#     Nhập vào tên chương hoặc từ khóa (ví dụ: 'Chương 1', 'Tư tưởng Hồ Chí Minh').
+#     Trả về bản tóm tắt nội dung từ giáo trình.
+#     """
+#     try:
+#         # Lấy retriever
+#         retriever = get_retriever()
 
-        # Truy vấn tìm đoạn văn bản liên quan
-        docs = retriever.get_relevant_documents(topic)
-        if not docs:
-            return "Không tìm thấy nội dung liên quan trong giáo trình."
+#         # Truy vấn tìm đoạn văn bản liên quan
+#         docs = retriever.get_relevant_documents(topic)
+#         if not docs:
+#             return "Không tìm thấy nội dung liên quan trong giáo trình."
 
-        # Gộp nội dung lại
-        full_text = "\n\n".join(doc.page_content for doc in docs)
+#         # Gộp nội dung lại
+#         full_text = "\n\n".join(doc.page_content for doc in docs)
 
-        # Gửi cho LLM để tóm tắt
-        if not os.environ.get("COHERE_API_KEY"):
-            os.environ["COHERE_API_KEY"] = getpass.getpass("Enter API key for Cohere: ")
-        llm = init_chat_model("command-r-plus", model_provider="cohere", model_kwargs={"temperature": 0})
-        prompt = f"Tóm tắt nội dung sau đây liên quan đến '{topic}':\n\n{full_text}"
-        summary = llm.invoke(prompt)
+#         # Gửi cho LLM để tóm tắt
+#         if not os.environ.get("COHERE_API_KEY"):
+#             os.environ["COHERE_API_KEY"] = getpass.getpass("Enter API key for Cohere: ")
+#         llm = init_chat_model("command-r-plus", model_provider="cohere", model_kwargs={"temperature": 0})
+#         prompt = f"Tóm tắt nội dung sau đây liên quan đến '{topic}':\n\n{full_text}"
+#         summary = llm.invoke(prompt)
 
-        return summary.content if hasattr(summary, "content") else summary
+#         return summary.content if hasattr(summary, "content") else summary
 
-    except Exception as e:
-        return f"Có lỗi xảy ra: {str(e)}"
+#     except Exception as e:
+#         return f"Có lỗi xảy ra: {str(e)}"
 
 
 def get_llm_and_agent(retriever):

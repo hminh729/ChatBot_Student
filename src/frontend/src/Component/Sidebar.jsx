@@ -12,9 +12,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
   const navigate = useNavigate();
   const getSubjects = async () => {
     try {
-      const res = await axios.get(
-        `http://127.0.0.1:8000/get_subjects/${stu_id}`
-      );
+      const res = await axios.get(`api/get_subjects/${stu_id}`);
       setSubjects(res.data.subjects);
     } catch (error) {
       console.error("Lỗi khi tải danh sách môn học:", error);
@@ -42,7 +40,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
       const subject_id = arr.map((word) => word[0]).join("");
 
       // Gửi môn học mới
-      await axios.post(`http://127.0.0.1:8000/add_subject/${stu_id}`, {
+      await axios.post(`api/add_subject/${stu_id}`, {
         subject_id,
         subject_name,
       });
@@ -52,7 +50,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
       formData.append("file", file);
       formData.append("subject_name", subject_name);
       formData.append("stu_id", stu_id);
-      await axios.post("http://127.0.0.1:8000/post_file", formData, {
+      await axios.post("api/post_file", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -76,7 +74,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
   const handleDelete = async (subject_name) => {
     try {
       const res = await axios.post(
-        `http://127.0.0.1:8000/delete_subject/${stu_id}/${subject_name}`
+        `api/delete_subject/${stu_id}/${subject_name}`
       );
       if (res.status === 200) {
         alert("Xóa môn học thành công");

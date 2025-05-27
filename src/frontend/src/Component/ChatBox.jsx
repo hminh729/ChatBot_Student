@@ -16,7 +16,7 @@ const ChatBox = ({ stu_id, subject_name }) => {
       }
       try {
         const res = await axios.get(
-          `http://127.0.0.1:8000/get_message/${stu_id}/${subject_name}`
+          `api/get_message/${stu_id}/${subject_name}`
         );
         setMessages(res.data.messages);
       } catch (error) {
@@ -44,7 +44,7 @@ const ChatBox = ({ stu_id, subject_name }) => {
     setInput("");
     try {
       const res = await axios.post(
-        `http://127.0.0.1:8000/get_response/${stu_id}/${subject_name}`,
+        `api/get_response/${stu_id}/${subject_name}`,
         formData,
         {
           headers: {

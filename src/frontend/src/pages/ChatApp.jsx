@@ -1,6 +1,6 @@
-import ChatBox from ".././Component/ChatBox.jsx";
-import ChatHeader from ".././Component/ChatHeader.jsx";
-import Sidebar from ".././Component/SideBar.jsx";
+import ChatBox from "../Component/ChatBox.jsx";
+import ChatHeader from "../Component/ChatHeader.jsx";
+import Sidebar from "../Component/Sidebar.jsx";
 import { useState } from "react";
 
 const App = () => {
