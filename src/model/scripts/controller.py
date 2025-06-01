@@ -13,7 +13,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from scripts.agent import get_llm_and_agent, get_retriever
 from scripts.seed_data import seed_data_milvus_ollama, delete_collection 
 
-
+# Mô hình dữ liệu cho người dùng và môn học
 class Message(BaseModel):
     role: str 
     content: str
@@ -28,7 +28,7 @@ class User(BaseModel):
     password:str
     subject: List[Subject] = Field(default_factory=list)
 
-#Conect to MongoDB
+#Conect to MongoDB Atlas
 client = motor.motor_asyncio.AsyncIOMotorClient()
 client = motor.motor_asyncio.AsyncIOMotorClient("mongodb+srv://phamminh7292004:Emh1ozB80dM675ve@cluster0.un3mk.mongodb.net/Auth?retryWrites=true&w=majority&appName=Cluster0")
 db = client.Auth
@@ -37,6 +37,7 @@ db = client["Auth"]
 collection = db.Users
 collection = db["Users"]
 
+# Hàm đăng ký người dùng mới
 async def signup(user: User):
     
     thisUser = jsonable_encoder(user)
@@ -46,9 +47,8 @@ async def signup(user: User):
     result = await collection.insert_one(thisUser)
     return {"status": "success", "user_id": str(result.inserted_id)}
 
-
+# Hàm lấy danh sách messages của một môn học
 async def get_message(stu_id :str = Path(...), subject_name: str = Path(...)):
-    
     thisUser = await collection.find_one({"stu_id": stu_id})
     if not thisUser:
         return {
@@ -65,6 +65,8 @@ async def get_message(stu_id :str = Path(...), subject_name: str = Path(...)):
         "status": "fail",
         "message": "Subject not found"
     }
+
+# Hàm cập nhật messages của một môn học
 async def update_message(stu_id :str = Path(...), subject_name: str = Path(...) ,messages: List[Message] = Body(...) ):
     
     message_json = jsonable_encoder(messages)
@@ -83,6 +85,7 @@ async def update_message(stu_id :str = Path(...), subject_name: str = Path(...) 
             "message": "Error on updating message"
         }
 
+# Hàm thêm môn học mới cho người dùng
 async def add_subject(
     stu_id: str = Path(...),
     subject_id: str = Body(...),
@@ -103,18 +106,16 @@ async def add_subject(
                 return {
                     "status":"success",
                     "message":"Subject already exists"
-                }
-        
+                }    
     result = await collection.update_one(
         {"stu_id": stu_id},
         {"$push": {"subject": new_subject}}
     )
-
     if result.modified_count == 0:
         return {"status": "fail", "message": "User not found or subject not added"}
-    
     return {"status": "success", "message": "Subject added successfully"}
 
+# Hàm xử lý upload file PDF
 async def post_file(file: UploadFile = File(...), subject_name: str = Form(...), stu_id: str = Form(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Chỉ hỗ trợ file PDF.")
@@ -146,6 +147,7 @@ async def post_file(file: UploadFile = File(...), subject_name: str = Form(...),
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Lỗi khi lưu file: {str(e)}")
 
+# Hàm đăng nhập người dùng
 async def login(stu_id:str = Path(...), password:str = Path(...)):
     thisUser = await collection.find_one({"stu_id": stu_id})
 
@@ -166,16 +168,14 @@ async def login(stu_id:str = Path(...), password:str = Path(...)):
                 "status":"success",
                 "message": "Login successfully",
             }
-
+# Hàm lấy phản hồi từ chatbot Agent
 async def get_response(
     stu_id: str = Path(...),
     subject_name: str = Path(...),
     input: str = Form(...)
 ):
-   
     retriever = get_retriever(subject_name+stu_id)
     agent_executor = get_llm_and_agent(retriever)
-
     result = await get_message(stu_id, subject_name)
     mongo_mess_history = result.get("messages", [])
     thisUserMessage = {"role": "user", "content": input}
@@ -186,24 +186,20 @@ async def get_response(
             chat_history.append(HumanMessage(content=msg["content"]))
         elif msg["role"] == "assistant":
             chat_history.append(AIMessage(content=msg["content"]))
-
     response = agent_executor.invoke({
         "input": input,
         "chat_history": chat_history
     })
-
     thisAssistantMessage = {"role": "assistant", "content": response["output"]}
     mongo_mess_history.append(thisUserMessage)
     mongo_mess_history.append(thisAssistantMessage)
-
-
     await update_message(stu_id, subject_name, mongo_mess_history)
-
     return {
         "status": "success",
         "message": response["output"]
     }
 
+# Hàm lấy danh sách các môn học của người dùng
 async def get_subjects(stu_id :str = Path(...)):
     
     thisUser = await collection.find_one({"stu_id": stu_id})
@@ -220,6 +216,7 @@ async def get_subjects(stu_id :str = Path(...)):
         "subjects": subjects
     }
 
+# Hàm xóa môn học của người dùng
 async def delete_subject(stu_id : str = Path(...), subject_name:str = Path(...)):
     try:
         await collection.update_one(

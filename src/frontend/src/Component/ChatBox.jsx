@@ -8,6 +8,7 @@ const ChatBox = ({ stu_id, subject_name }) => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    // Hàm lấy tin nhắn
     const fetchMessages = async () => {
       if (subject_name === "") {
         setNoti("Vui lòng chọn môn học để tiếp tục hỏi đáp");
@@ -33,6 +34,7 @@ const ChatBox = ({ stu_id, subject_name }) => {
 
   const handleInputChange = (e) => setInput(e.target.value);
 
+  // Hàm lấy phản hồi từ chatbot
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 

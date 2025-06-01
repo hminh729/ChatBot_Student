@@ -1,7 +1,7 @@
+# Import các thư viện cần thiết =====
 import getpass
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from langchain_milvus import Milvus
 from langchain_community.vectorstores import Milvus
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
@@ -9,14 +9,16 @@ from pymilvus import connections, utility
 from uuid import uuid4
 from dotenv import load_dotenv
 
-
-# Load biến môi trường
+# Load biến môi trường từ file .env
 load_dotenv()
+
+# Hàm kết nối Milvus
 def connect_milvus():
     try:
+        # Kết nối đến Milvus bằng địa chỉ nội bộ của container Docker
         connections.connect(
             alias="default",
-            host="milvus-standalone",
+            host="milvus-standalone",  # tên service trong docker-compose
             port="19530",
             secure=False,
         )
@@ -24,20 +26,31 @@ def connect_milvus():
     except Exception as e:
         print(f"Kết nối Milvus thất bại: {e}")
         raise
-def load_file_pdf(file_path:str):
+
+# Hàm đọc nội dung từ file PDF
+def load_file_pdf(file_path: str):
     """
-    Hàm này dùng để load file pdf từ đường dẫn file_path
+    Dùng PyPDFLoader để tải nội dung từ file PDF.
     """
     loader = PyPDFLoader(file_path, extract_images=False)
     documents = loader.load()
     return documents
 
-def seed_data_milvus_ollama(file_path:str, use_model:str,collection_name :str,url:str):
+# Hàm xử lý, tạo embedding và lưu dữ liệu vào Milvus
+def seed_data_milvus_ollama(file_path: str, use_model: str, collection_name: str, url: str):
+    """
+    - Đọc file PDF và chia nhỏ nội dung
+    - Dùng model Ollama để tạo embedding
+    - Lưu vào vectorstore Milvus
+    """
+    # Load file PDF thành các Document
     documents = load_file_pdf(file_path)
-    # Chia nhỏ văn bản thành các đoạn nhỏ (chunks)
+
+    # Chia văn bản thành các đoạn nhỏ (chunk)
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=200)
     chunks = text_splitter.split_documents(documents)
-    # Chuyển đổi `chunks` thành `Document` để lưu vào Milvus
+
+    # Tạo lại các Document có metadata chuẩn hóa
     documents = [
         Document(
             page_content=chunk.page_content,
@@ -54,27 +67,39 @@ def seed_data_milvus_ollama(file_path:str, use_model:str,collection_name :str,ur
         )
         for chunk in chunks
     ]
+
+    # Tạo UUID cho từng Document
     uuids = [str(uuid4()) for _ in range(len(documents))]
-    # Kết nối với Milvus
+
+    # Kết nối tới Milvus
     connect_milvus()
-    #khởi tạo OllamaEmbeddings
+
+    # Khởi tạo embedding model Ollama
     embeddings = OllamaEmbeddings(
-        model=use_model,
-        base_url="http://ollama:11434" 
+        model=use_model,  # ví dụ: "bge-m3:567m"
+        base_url="http://ollama:11434"  # URL local của Ollama server
     )
+
     try:
+        # Tạo hoặc kết nối tới collection trên Milvus
         vectorstore = Milvus(
             embedding_function=embeddings,
             collection_name=collection_name,
             drop_old=False,
-            connection_args={"host": "milvus-standalone", "port": "19530"}  # Chỉ định rõ host và port
+            connection_args={"host": "milvus-standalone", "port": "19530"}
         )
-        vectorstore.add_documents(documents=documents, ids = uuids)  # Thêm documents vào Milvus
+
+        # Thêm dữ liệu vào Milvus
+        vectorstore.add_documents(documents=documents, ids=uuids)
         print("Đã lưu embeddings vào MilvusDB!")
     except Exception as e:
         print(f"Kết nối Milvus thất bại: {e}")
 
-def delete_collection(collection_name:str):
+# Hàm xoá collection trong Milvus
+def delete_collection(collection_name: str):
+    """
+    Xoá collection (bộ dữ liệu vector) trong Milvus.
+    """
     connect_milvus()
     utility.drop_collection(collection_name)
     print(f"Đã xóa collection {collection_name} thành công!")

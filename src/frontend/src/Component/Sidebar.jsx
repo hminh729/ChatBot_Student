@@ -10,6 +10,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
   const [subject_name, setSubject_name] = useState("");
   const [subjects, setSubjects] = useState([]);
   const navigate = useNavigate();
+  //Hàm tải danh sách môn học
   const getSubjects = async () => {
     try {
       const res = await axios.get(`api/get_subjects/${stu_id}`);
@@ -26,9 +27,10 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
     setFile(e.target.files[0]);
   };
 
+  // Hàm xử lý upload file và gửi môn học mới
   const handleUpload = async () => {
     if (!file || !subject_name) {
-      setUploadStatus("⚠️ Vui lòng chọn file và nhập tên môn học.");
+      setUploadStatus("Vui lòng chọn file và nhập tên môn học.");
       return;
     }
 
@@ -54,7 +56,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setUploadStatus("✅ Upload thành công!");
+      setUploadStatus("Upload thành công!");
       setFile(null);
       setSubject_name("");
 
@@ -62,7 +64,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
       getSubjects();
     } catch (error) {
       console.error("Lỗi khi upload:", error);
-      setUploadStatus("❌ Upload thất bại.");
+      setUploadStatus("Upload thất bại.");
     } finally {
       setIsUploading(false);
     }
@@ -80,7 +82,7 @@ const Sidebar = ({ stu_id, onSetSubject_name }) => {
         alert("Xóa môn học thành công");
         getSubjects();
       } else {
-        setUploadStatus("❌ Xóa môn học thất bại.");
+        setUploadStatus("Xóa môn học thất bại.");
       }
     } catch (error) {}
   };

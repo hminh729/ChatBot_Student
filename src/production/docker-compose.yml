@@ -1,5 +1,4 @@
 version: "3.5"
-
 services:
   model:
     build:
@@ -11,10 +10,6 @@ services:
       - 8000
     networks:
       - app-network
-    # environment:
-    #   - MODEL_NAME=your_model_name
-    #   - MODEL_VERSION=1.0.0
-
   nginx:
     image: nginx:latest
     ports:
